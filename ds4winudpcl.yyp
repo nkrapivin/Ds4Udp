@@ -1,0 +1,51 @@
+{
+  "resourceType": "GMProject",
+  "resourceVersion": "1.6",
+  "name": "ds4winudpcl",
+  "resources": [
+    {"id":{"name":"Ds4UdpClient","path":"scripts/Ds4UdpClient/Ds4UdpClient.yy",},"order":2,},
+    {"id":{"name":"oDs4Testcase","path":"objects/oDs4Testcase/oDs4Testcase.yy",},"order":1,},
+    {"id":{"name":"Ds4UdpSocket","path":"scripts/Ds4UdpSocket/Ds4UdpSocket.yy",},"order":0,},
+    {"id":{"name":"Ds4UdpException","path":"scripts/Ds4UdpException/Ds4UdpException.yy",},"order":1,},
+    {"id":{"name":"rDs4Testcase","path":"rooms/rDs4Testcase/rDs4Testcase.yy",},"order":0,},
+  ],
+  "Options": [
+    {"name":"Android","path":"options/android/options_android.yy",},
+    {"name":"HTML5","path":"options/html5/options_html5.yy",},
+    {"name":"iOS","path":"options/ios/options_ios.yy",},
+    {"name":"Linux","path":"options/linux/options_linux.yy",},
+    {"name":"macOS","path":"options/mac/options_mac.yy",},
+    {"name":"Main","path":"options/main/options_main.yy",},
+    {"name":"PlayStation 4","path":"options/ps4/options_ps4.yy",},
+    {"name":"PlayStation 5","path":"options/ps5/options_ps5.yy",},
+    {"name":"Switch","path":"options/switch/options_switch.yy",},
+    {"name":"tvOS","path":"options/tvos/options_tvos.yy",},
+    {"name":"Windows","path":"options/windows/options_windows.yy",},
+    {"name":"Xbox Series XS","path":"options/xboxseriesxs/options_xboxseriesxs.yy",},
+    {"name":"wasm","path":"options/wasm/options_wasm.yy",},
+    {"name":"operagx","path":"options/operagx/options_operagx.yy",},
+  ],
+  "defaultScriptType": 1,
+  "isEcma": false,
+  "configs": {
+    "name": "Default",
+    "children": [],
+  },
+  "RoomOrderNodes": [
+    {"roomId":{"name":"rDs4Testcase","path":"rooms/rDs4Testcase/rDs4Testcase.yy",},},
+  ],
+  "Folders": [
+    {"resourceType":"GMFolder","resourceVersion":"1.0","name":"DS4WinUDPClient Testcase","folderPath":"folders/DS4WinUDPClient Testcase.yy","order":10,},
+    {"resourceType":"GMFolder","resourceVersion":"1.0","name":"DS4WinUDPClient","folderPath":"folders/DS4WinUDPClient.yy","order":11,},
+  ],
+  "AudioGroups": [
+    {"resourceType":"GMAudioGroup","resourceVersion":"1.3","name":"audiogroup_default","targets":-1,},
+  ],
+  "TextureGroups": [
+    {"resourceType":"GMTextureGroup","resourceVersion":"1.3","name":"Default","isScaled":true,"compressFormat":"bz2","autocrop":true,"border":2,"mipsToGenerate":0,"groupParent":null,"targets":-1,},
+  ],
+  "IncludedFiles": [],
+  "MetaData": {
+    "IDEVersion": "2022.8.1.37",
+  },
+}
