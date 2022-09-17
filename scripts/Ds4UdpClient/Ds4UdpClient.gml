@@ -167,7 +167,7 @@ function Ds4UdpClient(ipString = undefined, portReal = undefined) constructor {
 			var m4 = buffer_read(b, buffer_u8);
 			var m5 = buffer_read(b, buffer_u8);
 			var m6 = buffer_read(b, buffer_u8);
-			if (m1 != 0 && m2 != 0 && m3 != 0 && m4 != 0 && m5 != 0 && m6 != 0) {
+			if (!(m1 == 0 && m2 == 0 && m3 == 0 && m4 == 0 && m5 == 0 && m6 == 0)) {
 				// the order of the [] literal is undefined and is different between VM and YYC
 				eventData.address = [ m1, m2, m3, m4, m5, m6 ];
 			}
@@ -188,7 +188,7 @@ function Ds4UdpClient(ipString = undefined, portReal = undefined) constructor {
 			var m4 = buffer_read(b, buffer_u8);
 			var m5 = buffer_read(b, buffer_u8);
 			var m6 = buffer_read(b, buffer_u8);
-			if (m1 != 0 && m2 != 0 && m3 != 0 && m4 != 0 && m5 != 0 && m6 != 0) {
+			if (!(m1 == 0 && m2 == 0 && m3 == 0 && m4 == 0 && m5 == 0 && m6 == 0)) {
 				// the order of the [] literal is undefined and is different between VM and YYC
 				eventData.address = [ m1, m2, m3, m4, m5, m6 ];
 			}
