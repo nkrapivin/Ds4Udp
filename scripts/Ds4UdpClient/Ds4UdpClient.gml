@@ -2,6 +2,90 @@
 // that thing is so awful at naming suggestions that I gave up
 // everything else? Sure, please!
 
+/// @desc VersionRsp event
+function Ds4UdpEventVersionRsp() constructor {
+	maxProtocolVersion = 0;
+}
+
+/// @desc PortInfo event
+function Ds4UdpEventPortInfo() constructor {
+	padId = 0;
+	padState = Ds4UdpDsState.Disconnected;
+	model = Ds4UdpDsModel.None;
+	connectionType = Ds4UdpDsConnection.None;
+	address = undefined; // {Array<Real>}
+	batteryStatus = Ds4UdpDsBattery.None;
+}
+
+/// @desc PadData event, contains fields from Ds4UdpEventPortInfo plus the data
+function Ds4UdpEventPadDataRsp() : Ds4UdpEventPortInfo() constructor {
+	isActive = false;
+	packetCounter = 0;
+	buttons1 = 0;
+	buttons2 = 0;
+	psButton = false;
+	touchButton = false;
+	lx = 0;
+	ly = 0;
+	rx = 0;
+	ry = 0;
+	dpadLeft = 0;
+	dpadDown = 0;
+	dpadRight = 0;
+	dpadUp = 0;
+	square = 0;
+	cross = 0;
+	circle = 0;
+	triangle = 0;
+	r1 = 0;
+	l1 = 0;
+	r2 = 0;
+	l2 = 0;
+	touch1Active = false;
+	touch1PacketId = 0;
+	touch1X = 0;
+	touch1Y = 0;
+	touch2Active = false;
+	touch2PacketId = 0;
+	touch2X = 0;
+	touch2Y = 0;
+	totalMicroSec = int64(0);
+	// specifically floats:
+	accelXG = 0.0;
+	accelYG = 0.0;
+	accelZG = 0.0;
+	angVelPitch = 0.0;
+	angVelYaw = 0.0;
+	angVelRoll = 0.0;
+}
+
+/// @arg {Enum.Ds4UdpMessageType} msgTypeIn type of this message
+/// @arg {Real} serverIdIn id of the server that sent the packet
+/// @arg {Struct.Ds4UdpClient} senderIn client struct
+/// @arg {Struct.Ds4UdpEventVersionRsp} versionRspIn server max protocol version info
+/// @arg {Struct.Ds4UdpEventPortInfo} portInfoIn pad slots port info
+/// @arg {Struct.Ds4UdpEventPadDataRsp} padDataRspIn pad slots data info
+/// @desc A Ds4Udp event class
+function Ds4UdpEvent(msgTypeIn, serverIdIn, senderIn,
+	versionRspIn = undefined,
+	portInfoIn = undefined,
+	padDataRspIn = undefined) constructor {
+	
+	messageType	= msgTypeIn; // use this to check if other fields are present:
+	
+	serverId = serverIdIn;
+	
+	sender = senderIn;
+	
+	// data fields:
+	
+	versionRsp = versionRspIn; // set if messageType is VersionRsp
+	
+	portInfo = portInfoIn; // set if messageType is PortInfo
+	
+	padDataRsp = padDataRspIn; // set if messageType is PadDataRsp
+}
+
 /// @arg {String} [ipString] IP of the server, optional
 /// @arg {Real} [portReal] Port of the server, optional
 /// @desc This class communicates with the DS4Windows built-in UDP server, it must be enabled.
@@ -22,7 +106,7 @@ function Ds4UdpClient(ipString = undefined, portReal = undefined) constructor {
 	/// @ignore
 	scratchPacketSizePos = 0;
 	/// @ignore
-	scratchBuff = buffer_create(64, buffer_fixed, 1);
+	scratchBuff = new Ds4UdpBuffer(64, buffer_fixed, 1);
 	
 	// constants:
 	/// @desc Supported protocol version
@@ -37,7 +121,7 @@ function Ds4UdpClient(ipString = undefined, portReal = undefined) constructor {
 	/// @ignore
 	chkDisposed = function() {
 		if (is_undefined(clSck) || scratchBuff < 0) {
-			throw new Ds4UdpException("Ds4UdpClient is already disposed");
+			throw new Ds4UdpException("Ds4UdpClient is disposed");
 		}
 	};
 	
@@ -47,26 +131,25 @@ function Ds4UdpClient(ipString = undefined, portReal = undefined) constructor {
 		chkDisposed();
 		var b = scratchBuff;
 		// prepare the buffer:
-		buffer_fill(b, 0, buffer_u8, 0, buffer_get_size(b));
-		buffer_seek(b, buffer_seek_start, 0);
+		b.fillAndReset();
 		// -- header:
 		//      magic:
-		buffer_write(b, buffer_u8, 0x44); // 'D'
-		buffer_write(b, buffer_u8, 0x53); // 'S'
-		buffer_write(b, buffer_u8, 0x55); // 'U'
-		buffer_write(b, buffer_u8, 0x43); // 'C'
+		b.writeU8(0x44); // 'D'
+		b.writeU8(0x53); // 'S'
+		b.writeU8(0x55); // 'U'
+		b.writeU8(0x43); // 'C'
 		//      protocol version:
-		buffer_write(b, buffer_u16, protocolVersionReal);
+		b.writeU16(protocolVersionReal);
 		//      packet size: (will need this later, stub for now)
-		scratchPacketSizePos = buffer_tell(b);
-		buffer_write(b, buffer_u16, 0x0000);
+		scratchPacketSizePos = b.tell();
+		b.writeU16(0x0000);
 		//      packet crc32: (will need this later, stub for now)
-		scratchDataPos = buffer_tell(b);
-		buffer_write(b, buffer_u32, 0x00000000);
+		scratchDataPos = b.tell();
+		b.writeU32(0x00000000);
 		//      client id:
-		buffer_write(b, buffer_u32, clientIdReal);
+		b.writeU32(clientIdReal);
 		//      message id:
-		buffer_write(b, buffer_u32, messageIdReal);
+		b.writeU32(messageIdReal);
 		return undefined;
 	};
 	
@@ -75,18 +158,18 @@ function Ds4UdpClient(ipString = undefined, portReal = undefined) constructor {
 	endPacket = function() {
 		chkDisposed();
 		var b = scratchBuff;
-		var posEnd = buffer_tell(b);
+		var posEnd = b.tell();
 		// calculate packet size to fill in:
 		// i have NO IDEA how is that supposed to work???
 		// it always adds 16 to packet size when recieving
 		// and it's commented "//packet size"
 		// so... I just decrement 16 from final buffer????? wtf????
-		buffer_poke(b, scratchPacketSizePos, buffer_u16, posEnd - 16);
+		b.pokeU16(scratchPacketSizePos, posEnd - 16);
 		// calculate crc32 of the packet:
-		var pktCrc32 = (~buffer_crc32(b, 0, posEnd)) & 0xFFFFFFFF;
-		buffer_poke(b, scratchDataPos, buffer_u32, pktCrc32);
+		var pktCrc32 = b.correctCrc32(0, posEnd);
+		b.pokeU32(scratchDataPos, pktCrc32);
 		// prepare for network send:
-		buffer_seek(b, buffer_seek_start, 0);
+		b.seek();
 		// do it:
 		clSck.sendTo(srvIp, srvPort, b, posEnd);
 		// await for an async event now:
@@ -95,7 +178,11 @@ function Ds4UdpClient(ipString = undefined, portReal = undefined) constructor {
 	
 	/// @desc !DO NOT CALL THIS METHOD FROM PUBLIC CODE!
 	/// @ignore
-	onSocketData = function(bufferId, inIpString, inPortReal, inDataSize) {
+	/// @arg {Struct.Ds4UdpBuffer} bufferStruct managed by socket, no need to call .dispose()
+	/// @arg {String} inIpString IP of the client that sent data
+	/// @arg {Real} inPortReal Port of the client
+	/// @arg {Real} inDataSize actual size of the data received
+	onSocketData = function(bufferStruct, inIpString, inPortReal, inDataSize) {
 		chkDisposed();
 		// -- socket events are handled here -- //
 		if (inIpString != srvIp || inPortReal != srvPort) {
@@ -108,141 +195,147 @@ function Ds4UdpClient(ipString = undefined, portReal = undefined) constructor {
 			throw new Ds4UdpException("Too few bytes to parse a packet, got " + string(inDataSize));
 		}
 		
-		var b = bufferId;
+		var b = bufferStruct;
 		// actually parse the thing:
-		var h1 = buffer_read(b, buffer_u8);
-		var h2 = buffer_read(b, buffer_u8);
-		var h3 = buffer_read(b, buffer_u8);
-		var h4 = buffer_read(b, buffer_u8);
+		var h1 = b.readU8();
+		var h2 = b.readU8();
+		var h3 = b.readU8();
+		var h4 = b.readU8();
 		if (h1 != 0x44 || h2 != 0x53 || h3 != 0x55 || h4 != 0x53) {
 			throw new Ds4UdpException("Invalid packet header, expected 'DSUS' as raw bytes.");
 		}
 		
-		var srvProtocol = buffer_read(b, buffer_u16);
+		var srvProtocol = b.readU16();
 		if (srvProtocol > protocolVersionReal) {
 			throw new Ds4UdpException("Server protocol is higher than us, it is " + string(srvProtocol));
 		}
 		
-		var srvPktLen = buffer_read(b, buffer_u16); // who cares about the length?
+		var srvPktLen = b.readU16(); // who cares about the length?
 		srvPktLen += 16; // I hate this idea, this makes no sense! Just send the size of the entire pkt!
 		if (inDataSize < srvPktLen) {
-			throw new Ds4UdpException("Got packet but not enough bytes, " + string(srvPktLen));
+			throw new Ds4UdpException("Not enough bytes for packet, expected " + string(srvPktLen) + " got " + string(inDataSize));
 		}
 		
 		// le crc stuff
-		var srvCrc32Pos = buffer_tell(b); // where it starts
-		var srvPktCrc32 = buffer_read(b, buffer_u32); // read it
-		buffer_poke(b, srvCrc32Pos, buffer_u32, 0x00000000); // dummy out the crc32 for calculation
-		var srvActualCrc32 = (~buffer_crc32(b, 0, srvPktLen)) & 0xFFFFFFFF;
+		var srvCrc32Pos = b.tell(); // where it starts
+		var srvPktCrc32 = b.readU32(); // read it
+		b.pokeU32(srvCrc32Pos, 0x00000000); // dummy out the crc32 for calculation
+		var srvActualCrc32 = b.correctCrc32(0, srvPktLen);
 		if (srvActualCrc32 != srvPktCrc32) {
-			throw new Ds4UdpException("Invalid CRC32 checksum of the packet."); 
+			throw new Ds4UdpException("Invalid CRC32 checksum of the packet, expected " + string(srvPktCrc32) + " got " + string(srvActualCrc32)); 
 		}
 		
-		var srvId = buffer_read(b, buffer_u32); // will be pseudo-random, will not match our Client ID
-		var msgType = buffer_read(b, buffer_u32); // ideally should be >0
+		var srvId = b.readU32(); // will be pseudo-random, will not match our Client ID
+		var msgType = b.readU32(); // ideally should be >0
 		
-		var that = self;
-		var eventData = {
-			clientSelf: that,
-			serverIdReal: srvId,
-			messageTypeReal: msgType
-		};
+		var ee = undefined;
 		
 		if (msgType == 0x100000) {
 			// DSUC_VersionReq
-			eventData.maxProtocolVersion = buffer_read(b, buffer_u16);
+			var eventDatap = new Ds4UdpEventVersionRsp();
+			eventDatap.maxProtocolVersion = b.readU16();
+			ee = new Ds4UdpEvent(Ds4UdpMessageType.VersionRsp, srvId, self, eventDatap, undefined, undefined);
 			// and also 2 bytes padding for alignment which we can ignore
 			// they should ideally be set to 0
 		}
 		else if (msgType == 0x100001) {
 			// DSUC_ListPorts
-			eventData.padId = buffer_read(b, buffer_u8);
-			eventData.padState = buffer_read(b, buffer_u8);
-			eventData.model = buffer_read(b, buffer_u8);
-			eventData.connectionType = buffer_read(b, buffer_u8);
-			eventData.address = undefined;
-			var m1 = buffer_read(b, buffer_u8);
-			var m2 = buffer_read(b, buffer_u8);
-			var m3 = buffer_read(b, buffer_u8);
-			var m4 = buffer_read(b, buffer_u8);
-			var m5 = buffer_read(b, buffer_u8);
-			var m6 = buffer_read(b, buffer_u8);
+			var eventDatai = new Ds4UdpEventPortInfo();
+			eventDatai.padId = b.readU8();
+			eventDatai.padState = b.readU8();
+			eventDatai.model = b.readU8();
+			eventDatai.connectionType = b.readU8();
+			var m1 = b.readU8();
+			var m2 = b.readU8();
+			var m3 = b.readU8();
+			var m4 = b.readU8();
+			var m5 = b.readU8();
+			var m6 = b.readU8();
 			if (!(m1 == 0 && m2 == 0 && m3 == 0 && m4 == 0 && m5 == 0 && m6 == 0)) {
 				// the order of the [] literal is undefined and is different between VM and YYC
-				eventData.address = [ m1, m2, m3, m4, m5, m6 ];
+				eventDatai.address = [ m1, m2, m3, m4, m5, m6 ];
 			}
-			eventData.batteryStatus = buffer_read(b, buffer_u8);
+			eventDatai.batteryStatus = b.readU8();
 			// and then there's a 1 byte of padding for alignment which we can ignore
 			// ideally that byte should always be 0
+			ee = new Ds4UdpEvent(Ds4UdpMessageType.PortInfo, srvId, self, undefined, eventDatai, undefined);
 		}
 		else if (msgType == 0x100002) {
 			// DSUC_PadDataReq
-			eventData.padId = buffer_read(b, buffer_u8);
-			eventData.padState = buffer_read(b, buffer_u8);
-			eventData.model = buffer_read(b, buffer_u8);
-			eventData.connectionType = buffer_read(b, buffer_u8);
-			eventData.address = undefined;
-			var m1 = buffer_read(b, buffer_u8);
-			var m2 = buffer_read(b, buffer_u8);
-			var m3 = buffer_read(b, buffer_u8);
-			var m4 = buffer_read(b, buffer_u8);
-			var m5 = buffer_read(b, buffer_u8);
-			var m6 = buffer_read(b, buffer_u8);
+			var eventDatad = new Ds4UdpEventPadDataRsp();
+			eventDatad.padId = b.readU8();
+			eventDatad.padState = b.readU8();
+			eventDatad.model = b.readU8();
+			eventDatad.connectionType = b.readU8();
+			var m1 = b.readU8();
+			var m2 = b.readU8();
+			var m3 = b.readU8();
+			var m4 = b.readU8();
+			var m5 = b.readU8();
+			var m6 = b.readU8();
 			if (!(m1 == 0 && m2 == 0 && m3 == 0 && m4 == 0 && m5 == 0 && m6 == 0)) {
 				// the order of the [] literal is undefined and is different between VM and YYC
-				eventData.address = [ m1, m2, m3, m4, m5, m6 ];
+				eventDatad.address = [ m1, m2, m3, m4, m5, m6 ];
 			}
-			eventData.batteryStatus = buffer_read(b, buffer_u8);
+			eventDatad.batteryStatus = b.readU8();
 			// here instead of the 0 padding byte we have extra fields:
-			eventData.isActive = buffer_read(b, buffer_u8);
-			eventData.packetCounter = buffer_read(b, buffer_u32);
-			eventData.buttons1 = buffer_read(b, buffer_u8);
-			eventData.buttons2 = buffer_read(b, buffer_u8);
-			eventData.psButton = buffer_read(b, buffer_u8);
-			eventData.touchButton = buffer_read(b, buffer_u8);
-			eventData.lx = buffer_read(b, buffer_u8);
-			eventData.ly = buffer_read(b, buffer_u8);
-			eventData.rx = buffer_read(b, buffer_u8);
-			eventData.ry = buffer_read(b, buffer_u8);
-			eventData.dpadLeft = buffer_read(b, buffer_u8);
-			eventData.dpadDown = buffer_read(b, buffer_u8);
-			eventData.dpadRight = buffer_read(b, buffer_u8);
-			eventData.dpadUp = buffer_read(b, buffer_u8);
-			eventData.square = buffer_read(b, buffer_u8);
-			eventData.cross = buffer_read(b, buffer_u8);
-			eventData.circle = buffer_read(b, buffer_u8);
-			eventData.triangle = buffer_read(b, buffer_u8);
-			eventData.r1 = buffer_read(b, buffer_u8);
-			eventData.l1 = buffer_read(b, buffer_u8);
-			eventData.r2 = buffer_read(b, buffer_u8);
-			eventData.l2 = buffer_read(b, buffer_u8);
-			eventData.touch1Active = buffer_read(b, buffer_u8);
-			eventData.touch1PacketId = buffer_read(b, buffer_u8);
-			eventData.touch1X = buffer_read(b, buffer_u16);
-			eventData.touch1Y = buffer_read(b, buffer_u16);
-			eventData.touch2Active = buffer_read(b, buffer_u8);
-			eventData.touch2PacketId = buffer_read(b, buffer_u8);
-			eventData.touch2X = buffer_read(b, buffer_u16);
-			eventData.touch2Y = buffer_read(b, buffer_u16);
-			eventData.totalMicroSec = buffer_read(b, buffer_u64);
-			eventData.accelXG = buffer_read(b, buffer_f32);
-			eventData.accelYG = buffer_read(b, buffer_f32);
-			eventData.accelZG = buffer_read(b, buffer_f32);
-			eventData.angVelPitch = buffer_read(b, buffer_f32);
-			eventData.angVelYaw = buffer_read(b, buffer_f32);
-			eventData.angVelRoll = buffer_read(b, buffer_f32);
+			eventDatad.isActive = b.readU8();
+			eventDatad.packetCounter = b.readU32();
+			eventDatad.buttons1 = b.readU8();
+			eventDatad.buttons2 = b.readU8();
+			eventDatad.psButton = b.readU8();
+			eventDatad.touchButton = b.readU8();
+			eventDatad.lx = b.readU8();
+			eventDatad.ly = b.readU8();
+			eventDatad.rx = b.readU8();
+			eventDatad.ry = b.readU8();
+			eventDatad.dpadLeft = b.readU8();
+			eventDatad.dpadDown = b.readU8();
+			eventDatad.dpadRight = b.readU8();
+			eventDatad.dpadUp = b.readU8();
+			eventDatad.square = b.readU8();
+			eventDatad.cross = b.readU8();
+			eventDatad.circle = b.readU8();
+			eventDatad.triangle = b.readU8();
+			eventDatad.r1 = b.readU8();
+			eventDatad.l1 = b.readU8();
+			eventDatad.r2 = b.readU8();
+			eventDatad.l2 = b.readU8();
+			eventDatad.touch1Active = b.readU8();
+			eventDatad.touch1PacketId = b.readU8();
+			eventDatad.touch1X = b.readU16();
+			eventDatad.touch1Y = b.readU16();
+			eventDatad.touch2Active = b.readU8();
+			eventDatad.touch2PacketId = b.readU8();
+			eventDatad.touch2X = b.readU16();
+			eventDatad.touch2Y = b.readU16();
+			eventDatad.totalMicroSec = b.readU64();
+			eventDatad.accelXG = b.readF32();
+			eventDatad.accelYG = b.readF32();
+			eventDatad.accelZG = b.readF32();
+			eventDatad.angVelPitch = b.readF32();
+			eventDatad.angVelYaw = b.readF32();
+			eventDatad.angVelRoll = b.readF32();
 			// the rest of bytes should be 0 (if any)
+			ee = new Ds4UdpEvent(Ds4UdpMessageType.PadDataRsp, srvId, self, undefined, undefined, eventDatad);
 		}
 		else {
 			// ?????? uh oh
-			throw new Ds4UdpException("Unknown packet message id " + string(msgType));
+			throw new Ds4UdpException("Unknown packet message id " + string(msgType) + " from server id " + string(srvId));
 		}
 		
+		// call the handler if it's defined
 		if (!is_undefined(handlerFunction)) {
-			handlerFunction(eventData);
+			handlerFunction(ee);
 		}
 		
 		return undefined;
+	};
+	
+	/// @desc Returns the client's max protocol version, use when comparing to server
+	/// @returns {Real} protocol version supported by this client
+	getProtocolVersion = function() {
+		return protocolVersionReal;
 	};
 	
 	/// @desc Sends a DSUC_VersionReq message to the server
@@ -269,10 +362,11 @@ function Ds4UdpClient(ipString = undefined, portReal = undefined) constructor {
 		}
 		
 		beginPacket(0x100001); // DSUC_ListPorts
-		buffer_write(scratchBuff, buffer_s32, idsLen);
+		var b = scratchBuff;
+		b.writeU32(idsLen);
 		var idsInd = 0; repeat (idsLen) {
 			var slotId = idsToProbe[@ idsInd];
-			buffer_write(scratchBuff, buffer_u8, slotId);
+			b.writeU8(slotId);
 			++idsInd;
 		}
 		endPacket();
@@ -286,26 +380,27 @@ function Ds4UdpClient(ipString = undefined, portReal = undefined) constructor {
 	getPadDataReq = function(regFlags, idToReg = 0, macToReg = undefined) {
 		chkDisposed();
 		beginPacket(0x100002);
-		buffer_write(scratchBuff, buffer_u8, regFlags);
-		buffer_write(scratchBuff, buffer_u8, idToReg);
+		var b = scratchBuff;
+		b.writeU8(regFlags);
+		b.writeU8(idToReg);
 		// loops in GML suck, so this should be actually faster lolz
 		if (is_undefined(macToReg)) {
 			// we must write something here no matter what, since it's still read
-			buffer_write(scratchBuff, buffer_u8, 0);
-			buffer_write(scratchBuff, buffer_u8, 0);
-			buffer_write(scratchBuff, buffer_u8, 0);
-			buffer_write(scratchBuff, buffer_u8, 0);
-			buffer_write(scratchBuff, buffer_u8, 0);
-			buffer_write(scratchBuff, buffer_u8, 0);
+			b.writeU8(0);
+			b.writeU8(0);
+			b.writeU8(0);
+			b.writeU8(0);
+			b.writeU8(0);
+			b.writeU8(0);
 		}
 		else {
 			// use [@ for speed, also ensures the length and type
-			buffer_write(scratchBuff, buffer_u8, macToReg[@ 0]);
-			buffer_write(scratchBuff, buffer_u8, macToReg[@ 1]);
-			buffer_write(scratchBuff, buffer_u8, macToReg[@ 2]);
-			buffer_write(scratchBuff, buffer_u8, macToReg[@ 3]);
-			buffer_write(scratchBuff, buffer_u8, macToReg[@ 4]);
-			buffer_write(scratchBuff, buffer_u8, macToReg[@ 5]);
+			b.writeU8(macToReg[@ 0]);
+			b.writeU8(macToReg[@ 1]);
+			b.writeU8(macToReg[@ 2]);
+			b.writeU8(macToReg[@ 3]);
+			b.writeU8(macToReg[@ 4]);
+			b.writeU8(macToReg[@ 5]);
 		}
 		endPacket();
 		return self;
@@ -328,9 +423,8 @@ function Ds4UdpClient(ipString = undefined, portReal = undefined) constructor {
 	
 	/// @desc Disposes of this client, no methods can be called on an instance of this class after this one.
 	dispose = function() {
-		if (scratchBuff >= 0) {
-			buffer_delete(scratchBuff);
-			scratchBuff = -1;
+		if (!is_undefined(scratchBuff)) {
+			scratchBuff = scratchBuff.dispose();
 		}
 		
 		if (!is_undefined(clSck)) {
@@ -386,6 +480,13 @@ enum Ds4UdpDsBattery {
 	Full = 0x05,
 	Charging = 0xEE,
 	Charged = 0xEF
+};
+
+/// @desc the .messageType member of the data struct
+enum Ds4UdpMessageType {
+	VersionRsp = 0x100000,
+	PortInfo   = 0x100001,
+	PadDataRsp = 0x100002
 };
 
 /// @desc Use in getPadDataReq only

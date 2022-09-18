@@ -3,36 +3,38 @@ function Ds4UdpSocket() constructor {
 	sockId = network_create_socket(network_socket_udp);
 	onDataFunction = undefined;
 	
-	/// @arg {Function} callbackFunction Function that is called on some data
-	/// @desc Sets a function that gets called when some data is received.
-	setOnData = function(callbackFunction) {
+	/// @ignore
+	/// @desc !DO NOT CALL THIS METHOD FROM PUBLIC CODE!
+	chkDisposed = function() {
 		if (sockId < 0) {
 			throw new Ds4UdpException("Ds4UdpSocket is disposed");
 		}
-
+	};
+	
+	/// @arg {Function} callbackFunction Function that is called on some data
+	/// @desc Sets a function that gets called when some data is received.
+	setOnData = function(callbackFunction) {
+		chkDisposed();
 		onDataFunction = callbackFunction;
 		return self;
 	};
 	
 	/// @arg {String} addressString the URL or IP of the target as a string
 	/// @arg {Real} portReal port to send data to
-	/// @arg {Id.Buffer} dataBuffer buffer that contains the data to be sent
+	/// @arg {Struct.Ds4UdpBuffer} dataBuffer buffer that contains the data to be sent
 	/// @arg {Real} [sizeReal] size in bytes to sent, or nothing for full buffer
 	/// @desc Sends data to target via UDP, no guarantees are provided, throws on error.
 	sendTo = function(addressString, portReal, dataBuffer, sizeReal = undefined) {
-		if (sockId < 0) {
-			throw new Ds4UdpException("Ds4UdpSocket is disposed");
-		}
-		
+		chkDisposed();
 		if (is_undefined(sizeReal) || sizeReal < 0) {
-			sizeReal = buffer_get_size(dataBuffer);
+			sizeReal = dataBuffer.getSize();
 		}
 		
 		var sentReal = network_send_udp_raw(
 			sockId,
 			addressString,
 			portReal,
-			dataBuffer,
+			dataBuffer.getId(),
 			sizeReal
 		);
 		
@@ -50,10 +52,7 @@ function Ds4UdpSocket() constructor {
 	/// @arg {Id.DsMap} [asyncLoadId] An id of async_load or nothing
 	/// @desc Call in the 'Async - Networking' event like so: sck.performNetworkingEvent();
 	performNetworkingEvent = function(asyncLoadId = undefined) {
-		if (sockId < 0) {
-			throw new Ds4UdpException("Ds4UdpSocket is disposed");
-		}
-		
+		chkDisposed();
 		if (is_undefined(asyncLoadId) || asyncLoadId < 0) {
 			asyncLoadId = async_load;
 		}
@@ -62,10 +61,11 @@ function Ds4UdpSocket() constructor {
 		// UDP sockets have no conect of connection or disconnection
 		// so only the "Data" event really applies to us...
 		if (e[? "id"] == sockId
-		&&  e[? "type"] == network_type_data) {
-			if (!is_undefined(onDataFunction)) {
-				onDataFunction(e[? "buffer"], e[? "ip"], e[? "port"], e[? "size"]);
-			}
+		&&  e[? "type"] == network_type_data
+		&&  !is_undefined(onDataFunction)) {
+			var inb = new Ds4UdpBuffer(e[? "buffer"]);
+			onDataFunction(inb, e[? "ip"], e[? "port"], e[? "size"]);
+			inb = inb.dispose();
 		}
 		return self;
 	};

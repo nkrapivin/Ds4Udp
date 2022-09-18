@@ -1,8 +1,14 @@
 /// @description Poke.
 
-if (keyboard_check_pressed(ord("1"))) {
-	// actually start the thing:
-	client.getVersionReq();
-	client.getListPorts(); // poll every controller (up to 4)
-	show_debug_message("Sent! Waiting for async events...");
+if (serverId != -1) {
+	if (tmpind == -1) {
+		pollAllPorts();
+	}
+	
+	if (get_timer() - lastGotTime > emergencyMargin) {
+		window_set_caption("LOST CONNECTION TO SERVER! DID NOT RECEIVE ANY EVENTS FOR A LONG TIME");
+	}
+	else {
+		window_set_caption("All is fine");
+	}
 }

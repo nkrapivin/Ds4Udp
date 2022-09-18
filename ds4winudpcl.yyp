@@ -7,6 +7,7 @@
     {"id":{"name":"oDs4Testcase","path":"objects/oDs4Testcase/oDs4Testcase.yy",},"order":1,},
     {"id":{"name":"Ds4UdpSocket","path":"scripts/Ds4UdpSocket/Ds4UdpSocket.yy",},"order":0,},
     {"id":{"name":"Ds4UdpException","path":"scripts/Ds4UdpException/Ds4UdpException.yy",},"order":1,},
+    {"id":{"name":"Ds4UdpBuffer","path":"scripts/Ds4UdpBuffer/Ds4UdpBuffer.yy",},"order":3,},
     {"id":{"name":"rDs4Testcase","path":"rooms/rDs4Testcase/rDs4Testcase.yy",},"order":0,},
   ],
   "Options": [
