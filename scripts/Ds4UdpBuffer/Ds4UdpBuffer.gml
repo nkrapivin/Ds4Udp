@@ -37,6 +37,11 @@ function Ds4UdpBuffer(sizeOrBufferId) constructor {
 		buffer_write(bufferId, buffer_u32, value);
 	};
 	
+	writeS32 = function(value) {
+		chkDisposed();
+		buffer_write(bufferId, buffer_s32, value);
+	};
+	
 	readU8 = function() {
 		chkDisposed();
 		return buffer_read(bufferId, buffer_u8);
@@ -97,6 +102,21 @@ function Ds4UdpBuffer(sizeOrBufferId) constructor {
 		seek(at);
 		writeU32(value);
 		seek(ppos);
+	};
+	
+	writeCString = function(value) {
+		chkDisposed();
+		buffer_write(bufferId, buffer_string, value);
+	};
+	
+	readCString = function() {
+		chkDisposed();
+		return buffer_read(bufferId, buffer_string);
+	};
+	
+	readS32 = function() {
+		chkDisposed();
+		return buffer_read(bufferId, buffer_s32);
 	};
 	
 	getSize = function() {

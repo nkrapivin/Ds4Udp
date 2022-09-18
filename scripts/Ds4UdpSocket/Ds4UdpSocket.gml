@@ -1,7 +1,10 @@
 /// @desc A funky UDP client wrapper class that is used by Ds4UdpClient
-function Ds4UdpSocket() constructor {
-	sockId = network_create_socket(network_socket_udp);
-	onDataFunction = undefined;
+/// @arg {Constant.SocketType} inSocketType udp or tcp work reliably with this class
+function Ds4UdpSocket(inSocketType) constructor {
+	sockType = inSocketType;
+	sockId = network_create_socket(sockType);
+	onDataFunction = undefined; // when some data is received
+	onStateFunction = undefined; // when the connection state is changed
 	
 	/// @ignore
 	/// @desc !DO NOT CALL THIS METHOD FROM PUBLIC CODE!
@@ -19,12 +22,20 @@ function Ds4UdpSocket() constructor {
 		return self;
 	};
 	
+	/// @arg {Function} callbackFunction Function that is called on connection status change
+	/// @desc Sets a function that gets called when connection status is changed. (TCP/WS ONLY!)
+	setOnState = function(callbackFunction) {
+		chkDisposed();
+		onStateFunction = callbackFunction;
+		return self;
+	};
+	
 	/// @arg {String} addressString the URL or IP of the target as a string
 	/// @arg {Real} portReal port to send data to
 	/// @arg {Struct.Ds4UdpBuffer} dataBuffer buffer that contains the data to be sent
 	/// @arg {Real} [sizeReal] size in bytes to sent, or nothing for full buffer
 	/// @desc Sends data to target via UDP, no guarantees are provided, throws on error.
-	sendTo = function(addressString, portReal, dataBuffer, sizeReal = undefined) {
+	sendToUdp = function(addressString, portReal, dataBuffer, sizeReal = undefined) {
 		chkDisposed();
 		if (is_undefined(sizeReal) || sizeReal < 0) {
 			sizeReal = dataBuffer.getSize();
@@ -41,9 +52,48 @@ function Ds4UdpSocket() constructor {
 		// throw if we didn't send enough data
 		if (sentReal != sizeReal) {
 			throw new Ds4UdpException(
-				"Failed to send a UDP packet, expected to send " + string(sizeReal) +
-				" but sent only " + string(sentReal)
+				"Failed to send a packet, expected to send " + string(sizeReal) +
+				" bytes, but sent only " + string(sentReal)
 			);
+		}
+		
+		return self;
+	};
+	
+	/// @arg {Struct.Ds4UdpBuffer} dataBuffer buffer that contains the data to be sent
+	/// @arg {Real} [sizeReal] size in bytes to sent, or nothing for full buffer
+	/// @desc Sends data to target via TCP, throws on error.
+	sendToTcp = function(dataBuffer, sizeReal = undefined) {
+		chkDisposed();
+		if (is_undefined(sizeReal) || sizeReal < 0) {
+			sizeReal = dataBuffer.getSize();
+		}
+		
+		var sentReal = network_send_raw(
+			sockId,
+			dataBuffer.getId(),
+			sizeReal
+		);
+		
+		// throw if we didn't send enough data
+		if (sentReal != sizeReal) {
+			throw new Ds4UdpException(
+				"Failed to send a packet, expected to send " + string(sizeReal) +
+				" bytes, but sent only " + string(sentReal)
+			);
+		}
+		
+		return self;
+	};
+	
+	/// @arg {String} addressString Target URL or IP as a string
+	/// @arg {Real} portReal Target port
+	/// @desc Tries to connect to a TCP target in async, calls the onState function to report a result.
+	connectToTcp = function(addressString, portReal) {
+		chkDisposed();
+		var res = network_connect_raw_async(sockId, addressString, portReal);
+		if (res < 0) {
+			throw new Ds4UdpException("Failed to initiate a connection " + string(res));
 		}
 		
 		return self;
@@ -60,12 +110,25 @@ function Ds4UdpSocket() constructor {
 		var e = asyncLoadId;
 		// UDP sockets have no conect of connection or disconnection
 		// so only the "Data" event really applies to us...
-		if (e[? "id"] == sockId
-		&&  e[? "type"] == network_type_data
-		&&  !is_undefined(onDataFunction)) {
-			var inb = new Ds4UdpBuffer(e[? "buffer"]);
-			onDataFunction(inb, e[? "ip"], e[? "port"], e[? "size"]);
-			inb = inb.dispose();
+		if (e[? "id"] == sockId) {
+			var eventType = e[? "type"];
+			if (eventType == network_type_data && !is_undefined(onDataFunction)) {
+				var inb = new Ds4UdpBuffer(e[? "buffer"]);
+				onDataFunction(inb, e[? "ip"], e[? "port"], e[? "size"]);
+				inb = inb.dispose();
+			}
+			else if (
+				(eventType == network_type_connect ||
+				eventType == network_type_non_blocking_connect ||
+				eventType == network_type_disconnect)
+				&& !is_undefined(onStateFunction)) {
+				if (eventType == network_type_non_blocking_connect) {
+					onStateFunction(e[? "succeeded"] ? network_type_connect : network_type_disconnect);
+				}
+				else {
+					onStateFunction(eventType);
+				}
+			}
 		}
 		return self;
 	};
@@ -74,10 +137,10 @@ function Ds4UdpSocket() constructor {
 	reset = function() {
 		chkDisposed();
 		dispose();
-		sockId = network_create_socket(network_socket_udp);
+		sockId = network_create_socket(sockType);
 		// actually verify the socket id now
 		if (sockId < 0) {
-			throw new Ds4UdpException("Unable to reset a UDP socket: " + string(sockId));
+			throw new Ds4UdpException("Unable to reset a socket: " + string(sockId));
 		}
 		return self;
 	};
@@ -89,11 +152,13 @@ function Ds4UdpSocket() constructor {
 			sockId = -1;
 		}
 		
+		onDataFunction = undefined;
+		onStateFunction = undefined;
 		return undefined;
 	};
 	
 	// actually verify the socket id now
 	if (sockId < 0) {
-		throw new Ds4UdpException("Unable to create a UDP socket: " + string(sockId));
+		throw new Ds4UdpException("Unable to create a socket: " + string(sockId));
 	}
 }

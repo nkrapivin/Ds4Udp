@@ -96,7 +96,7 @@ function Ds4UdpClient(ipString = undefined, portReal = undefined) constructor {
 	/// @ignore
 	srvPort = (is_undefined(portReal) || portReal <= 0) ? 26760 : portReal;
 	/// @ignore
-	clSck = new Ds4UdpSocket();
+	clSck = new Ds4UdpSocket(network_socket_udp);
 	/// @ignore
 	handlerFunction = undefined;
 	
@@ -171,7 +171,7 @@ function Ds4UdpClient(ipString = undefined, portReal = undefined) constructor {
 		// prepare for network send:
 		b.seek();
 		// do it:
-		clSck.sendTo(srvIp, srvPort, b, posEnd);
+		clSck.sendToUdp(srvIp, srvPort, b, posEnd);
 		// await for an async event now:
 		return undefined;
 	};
