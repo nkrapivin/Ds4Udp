@@ -8,7 +8,7 @@ function SlotData(inI = -1, inA = undefined, inD = new Ds4UdpEventPadDataRsp()) 
 	reset = function() {
 		padId = -1;
 		padMac = undefined;
-		data = new Ds4UdpEventPadDataRsp();
+		data = undefined;
 	};
 }
 
@@ -35,7 +35,7 @@ pollAllData = function() {
 		}
 		else {
 			// disconnected!
-			slotdata[@ slot].data = undefined;
+			slotdata[@ slot].reset();
 		}
 		//}
 		++slot;
