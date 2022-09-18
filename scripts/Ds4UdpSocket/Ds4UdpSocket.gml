@@ -151,9 +151,6 @@ function Ds4UdpSocket(inSocketType) constructor {
 			network_destroy(sockId);
 			sockId = -1;
 		}
-		
-		onDataFunction = undefined;
-		onStateFunction = undefined;
 		return undefined;
 	};
 	
