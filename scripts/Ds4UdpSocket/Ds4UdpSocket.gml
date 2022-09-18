@@ -70,6 +70,18 @@ function Ds4UdpSocket() constructor {
 		return self;
 	};
 	
+	/// @desc Recreates the native socket used by the class, use sparingly.
+	reset = function() {
+		chkDisposed();
+		dispose();
+		sockId = network_create_socket(network_socket_udp);
+		// actually verify the socket id now
+		if (sockId < 0) {
+			throw new Ds4UdpException("Unable to reset a UDP socket: " + string(sockId));
+		}
+		return self;
+	};
+	
 	/// @desc Disposes of this socket, no methods can be called on an instance of this class after this one.
 	dispose = function() {
 		if (sockId >= 0) {

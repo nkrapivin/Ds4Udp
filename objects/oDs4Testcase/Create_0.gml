@@ -1,6 +1,10 @@
-/// @description Test start
+/// @description Test start.
 
-function SlotData(inI = -1, inA = undefined, inD = new Ds4UdpEventPadDataRsp()) constructor {
+/// @arg {Real} inI
+/// @arg {Array<Real>} inA
+/// @arg {Struct.Ds4UdpEventPadDataRsp} inD
+/// @desc A slot -> pad struct, .data is not undefined if pad is connected
+function SlotData(inI = -1, inA = undefined, inD = undefined) constructor {
 	padId = inI;
 	padMac = inA;
 	data = inD;
@@ -18,9 +22,26 @@ slotdata = [
 	new SlotData(),
 	new SlotData()
 ];
-tmpind = -1; // packets arrive in order
 
-serverId = -1;
+tmpind = -1; // packets arrive in order, -1 means idle
+
+timer = 0;
+lastGotTime = 0;
+connectionMargin = 3 * 1000000; // every 3 secs
+lastConnTime = 0;
+emergencyMargin = 2 * 1000000; // every 2 secs
+
+serverId = -1; // -1 means no server
+
+resetSlots = function() {
+	slotdata = [
+		new SlotData(),
+		new SlotData(),
+		new SlotData(),
+		new SlotData()
+	];
+	tmpind = -1;
+};
 
 pollAllData = function() {
 	var slot = 0; repeat (array_length(slotdata)) {
@@ -43,7 +64,9 @@ pollAllData = function() {
 };
 
 pollAllPorts = function() {
-	tmpind = 0; client.getListPorts();
+	if (tmpind == -1) {
+		tmpind = 0; client.getListPorts();
+	}
 };
 
 /// @arg {Struct.Ds4UdpEventPadDataRsp} inData ...
@@ -65,9 +88,6 @@ setData = function(inData) {
 	}
 };
 
-lastGotTime = 0;
-emergencyMargin = 5 * 1000000;
-
 /// @arg {Struct.Ds4UdpEvent} e Event Data
 function testcaseEventHandler(e) {
 	if (serverId != -1 && serverId != e.serverId) {
@@ -83,6 +103,7 @@ function testcaseEventHandler(e) {
 		var myprot = client.getProtocolVersion();
 		show_debug_message("DS4Win protocol is " + string(versionRsp.maxProtocolVersion));
 		show_debug_message("Client protocol is " + string(myprot));
+		show_debug_message("Server ID is " + string(e.serverId));
 		// hehe
 		serverId = e.serverId;
 		// now start polling for controllers:
@@ -116,5 +137,4 @@ function testcaseEventHandler(e) {
 handler = method(self, testcaseEventHandler);
 client = new Ds4UdpClient();
 client.setOnData(handler);
-client.getVersionReq();
-
+resetSlots();

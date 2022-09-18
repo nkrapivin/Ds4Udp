@@ -421,6 +421,13 @@ function Ds4UdpClient(ipString = undefined, portReal = undefined) constructor {
 		return self;
 	};
 	
+	/// @desc Resets the underlying socket, use this only if you are reconnecting.
+	reset = function() {
+		chkDisposed();
+		clSck.reset();
+		return self;
+	};
+	
 	/// @desc Disposes of this client, no methods can be called on an instance of this class after this one.
 	dispose = function() {
 		if (!is_undefined(scratchBuff)) {

@@ -75,7 +75,7 @@ function Ds4UdpBuffer(sizeOrBufferId) constructor {
 	fillAndReset = function() {
 		chkDisposed();
 		buffer_fill(bufferId, 0, buffer_u8, 0, buffer_get_size(bufferId));
-		buffer_seek(bufferId, buffer_seek_start, 0);
+		seek();
 	};
 	
 	correctCrc32 = function(offsetReal, sizeReal) {
