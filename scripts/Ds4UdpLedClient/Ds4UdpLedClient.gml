@@ -34,13 +34,14 @@ function Ds4UdpLedBlock() constructor {
 	ledValue = 0;
 }
 
-function Ds4UdpLedZone() constructor {
+/// @arg {Array<Array<Real>>} hintA zoneMatrixData
+function Ds4UdpLedZone(hintA = [ [] ]) constructor {
 	zoneName = "";
 	zoneType = 0;
 	zoneLedsMin = 0;
 	zoneLedsMax = 0;
 	zoneLedsCount = 0;
-	zoneMatrixData = [];
+	zoneMatrixData = hintA;
 }
 
 /// @arg {Array<Constant.Color>} hintA colors
@@ -343,8 +344,9 @@ function Ds4UdpLedClient(ipString, portReal) constructor {
 				if (zml > 0) {
 					var zmh = b.readU32();
 					var zmw = b.readU32();
-					for (var zmy = 0; zmy < zmh; ++zmy) {
-						for (var zmx = 0; zmx < zmw; ++zmx) {
+					for (var zmx = 0; zmx < zmw; ++zmx) {
+						zb.zoneMatrixData[@ zmx] = array_create(zmh);
+						for (var zmy = 0; zmy < zmh; ++zmy) {
 							zb.zoneMatrixData[@ zmx][@ zmy] = b.readU32();
 						}
 					}
