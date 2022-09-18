@@ -7,7 +7,7 @@ if (serverId == -1) {
 }
 
 var slot = 0; repeat (array_length(slotdata)) {
-	var data = slotdata[@ slot].data;
+	var data = slotdata[@ slot];
 	//{
 	if (!is_undefined(data)) {
 		var str = "";

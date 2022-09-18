@@ -1,90 +1,41 @@
 /// @description Test start.
 
-/// @arg {Real} inI
-/// @arg {Array<Real>} inA
-/// @arg {Struct.Ds4UdpEventPadDataRsp} inD
-/// @desc A slot -> pad struct, .data is not undefined if pad is connected
-function SlotData(inI = -1, inA = undefined, inD = undefined) constructor {
-	padId = inI;
-	padMac = inA;
-	data = inD;
-	
-	reset = function() {
-		padId = -1;
-		padMac = undefined;
-		data = undefined;
-	};
-}
-
+// to keep Feather happy, it's set to undefined down below
 slotdata = [
-	new SlotData(),
-	new SlotData(),
-	new SlotData(),
-	new SlotData()
+	new Ds4UdpEventPadDataRsp(),
+	new Ds4UdpEventPadDataRsp(),
+	new Ds4UdpEventPadDataRsp(),
+	new Ds4UdpEventPadDataRsp()
 ];
-
-tmpind = -1; // packets arrive in order, -1 means idle
 
 timer = 0;
 lastGotTime = 0;
 connectionMargin = 3 * 1000000; // every 3 secs
-lastConnTime = 0;
 emergencyMargin = 2 * 1000000; // every 2 secs
-
 serverId = -1; // -1 means no server
 
 resetSlots = function() {
-	slotdata = [
-		new SlotData(),
-		new SlotData(),
-		new SlotData(),
-		new SlotData()
-	];
-	tmpind = -1;
+	var slot = 0, slotslen = array_length(slotdata); repeat (slotslen) {
+		slotdata[@ (slot++)] = undefined;
+	}
 };
 
 pollAllData = function() {
-	var slot = 0; repeat (array_length(slotdata)) {
-		var data = slotdata[@ slot];
-		//{
-		if (data.padId > -1) {
-			client.getPadDataReq(
-				Ds4UdpRegFlags.IdIsValid | (is_undefined(data.padMac) ? Ds4UdpRegFlags.None : Ds4UdpRegFlags.MacIsValid),
-				data.padId,
-				data.padMac
-			);
-		}
-		else {
-			// disconnected!
-			slotdata[@ slot].reset();
-		}
-		//}
-		++slot;
-	}
-};
-
-pollAllPorts = function() {
-	if (tmpind == -1) {
-		tmpind = 0; client.getListPorts();
-	}
+	// poll for everything
+	client.getVersionReq();
+	// the server MUST reply to this
+	// if we get no data but get version, then server is up
+	// but no controllers are connected
+	client.getListPorts();
 };
 
 /// @arg {Struct.Ds4UdpEventPadDataRsp} inData ...
 setData = function(inData) {
-	var slot = 0; repeat (array_length(slotdata)) {
-		var data = slotdata[@ slot];
-		//{
-		if (data.padId == inData.padId) {
-			if (inData.padState == Ds4UdpDsState.Disconnected) {
-				slotdata[@ slot].reset();
-			}
-			else {
-				slotdata[@ slot].data = inData;
-			}
-			exit;
-		}
-		//}
-		++slot;
+	if (inData.padState == Ds4UdpDsState.Disconnected) {
+		slotdata[@ inData.padId] = undefined;
+	}
+	else {
+		slotdata[@ inData.padId] = inData;
 	}
 };
 
@@ -96,36 +47,27 @@ function testcaseEventHandler(e) {
 		exit;
 	}
 	
+	// last time we got something valid to our side
 	lastGotTime = get_timer();
 	var em = e.messageType;
 	if (em == Ds4UdpMessageType.VersionRsp) {
-		var versionRsp = e.versionRsp;
-		var myprot = client.getProtocolVersion();
-		show_debug_message("DS4Win protocol is " + string(versionRsp.maxProtocolVersion));
-		show_debug_message("Client protocol is " + string(myprot));
-		show_debug_message("Server ID is " + string(e.serverId));
-		// hehe
-		serverId = e.serverId;
-		// now start polling for controllers:
-		pollAllPorts();
+		if (serverId == -1) {
+			var versionRsp = e.versionRsp;
+			var myprot = client.getProtocolVersion();
+			show_debug_message("DS4Win protocol is " + string(versionRsp.maxProtocolVersion));
+			show_debug_message("Client protocol is " + string(myprot));
+			show_debug_message("Server ID is " + string(e.serverId));
+			// hehe
+			serverId = e.serverId;
+		}
 	}
 	else if (em == Ds4UdpMessageType.PortInfo) {
-		var portinfo = e.portInfo;
-		if (portinfo.padState == Ds4UdpDsState.Disconnected) {
-			slotdata[@ tmpind].reset();
+		var pI = e.portInfo;
+		if (pI.padState == Ds4UdpDsState.Disconnected) {
+			slotdata[@ pI.padId] = undefined;
 		}
 		else {
-			slotdata[@ tmpind].padId = portinfo.padId;
-			slotdata[@ tmpind].address = portinfo.address;
-			slotdata[@ tmpind].data = undefined;
-		}
-		
-		++tmpind;
-		
-		if (tmpind == array_length(slotdata)) {
-			tmpind = -1; // idle.
-			// only poll for data when we received all info about slots
-			pollAllData();
+			client.getPadDataReq(Ds4UdpRegFlags.IdIsValid, pI.padId);
 		}
 	}
 	else if (em == Ds4UdpMessageType.PadDataRsp) {

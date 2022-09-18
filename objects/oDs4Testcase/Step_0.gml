@@ -3,11 +3,7 @@
 timer = get_timer();
 
 if (serverId != -1) {
-	// not polling for any ports rn, can poll for them
-	// (then it will poll for data)
-	if (tmpind == -1) {
-		pollAllPorts();
-	}
+	pollAllData();
 	
 	// check if we had no network events in a long time
 	if (timer - lastGotTime > emergencyMargin) {
@@ -23,8 +19,8 @@ if (serverId != -1) {
 	}
 }
 else {
-	if (timer - lastConnTime > connectionMargin) {
-		lastConnTime = timer;
+	if (timer - lastGotTime > connectionMargin) {
+		lastGotTime = timer;
 		client.getVersionReq();
 		show_debug_message("Attempting reconnection...");
 	}
