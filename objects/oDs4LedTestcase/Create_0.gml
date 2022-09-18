@@ -24,10 +24,18 @@ handler = function(e) {
 		// only a part of this funny thing to report socket state changes
 		var isokay = e.clientStateChange.isConnected;
 		if (!isokay) {
+			show_debug_message("OpenRGB Disconnected (or connection failed)!");
+			// the client will automatically reset it's own socket
+			// and we need to get rid of everything as well:
+			array_resize(devices, 0);
+			array_resize(profileNames, 0);
+			tempind = -1;
+			// then try to connect again:
+			client.reconnect();
 			exit;
 		}
 		
-		show_debug_message("Connected!");
+		show_debug_message("OpenRGB Connected!");
 		client.requestProtocolVersion();
 	}
 	else if (em == Ds4UdpLedMessage.ProtocolVersion) {

@@ -180,7 +180,18 @@ function Ds4UdpLedClient(ipString, portReal) constructor {
 		var pktLength = wholeLength - scratchBeginPos;
 		b.pokeU32(scratchSizePos, pktLength);
 		b.seek();
-		clSck.sendToTcp(b, wholeLength);
+		try {
+			clSck.sendToTcp(b, wholeLength);
+		} catch (socketException) {
+			reset();
+			if (!is_undefined(handlerFunction)) {
+				var e = new Ds4UdpLedEvent(Ds4UdpLedMessage.ClientStateChange, self);
+				var evd = new Ds4UdpLedClientStateChangeEvent();
+				evd.isConnected = false;
+				e.clientStateChange = evd;
+				handlerFunction(e);
+			}
+		}
 		// wait for an async event...
 		return undefined;
 	};
@@ -587,7 +598,16 @@ function Ds4UdpLedClient(ipString, portReal) constructor {
 		return self;
 	};
 	
-	/// @desc Resets the underlying socket, use this only if you are reconnecting.
+	/// @desc Attempts to reconnect the socket if not connected.
+	reconnect = function() {
+		chkDisposed();
+		if (!isConnected) {
+			clSck.connectToTcp(srvIp, srvPort);
+		}
+		return self;
+	};
+	
+	/// @desc Resets the underlying socket, use this only if you have to.
 	reset = function() {
 		chkDisposed();
 		clSck.reset();
