@@ -4,6 +4,7 @@ timer = get_timer();
 
 if (serverId != -1) {
 	pollAllData();
+	clobberSlots();
 	
 	// check if we had no network events in a long time
 	if (timer - lastGotTime > emergencyMargin) {

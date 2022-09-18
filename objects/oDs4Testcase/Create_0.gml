@@ -36,6 +36,19 @@ setData = function(inData) {
 	}
 	else {
 		slotdata[@ inData.padId] = inData;
+		// append the gamemaker timer stamp into the data
+		slotdata[@ inData.padId].gmTimer = get_timer();
+	}
+};
+
+clobberSlots = function() {
+	var slot = 0, slotslen = array_length(slotdata); repeat (slotslen) {
+		if (!is_undefined(slotdata[@ slot]) && (timer - slotdata[@ slot].gmTimer > connectionMargin)) {
+			show_debug_message("Did not update slot " + string(slot) + " in a long time, clobbering...");
+			slotdata[@ slot] = undefined;
+		}
+		
+		++slot;
 	}
 };
 
