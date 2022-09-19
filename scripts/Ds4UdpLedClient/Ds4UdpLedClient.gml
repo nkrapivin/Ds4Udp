@@ -35,7 +35,7 @@ function Ds4UdpLedBlock() constructor {
 }
 
 /// @arg {Array<Array<Real>>} hintA zoneMatrixData
-function Ds4UdpLedZone(hintA = [ [] ]) constructor {
+function Ds4UdpLedZone(hintA = []) constructor {
 	zoneName = "";
 	zoneType = 0;
 	zoneLedsMin = 0;
@@ -270,7 +270,10 @@ function Ds4UdpLedClient(ipString, portReal) constructor {
 		
 		if (packetId == Ds4UdpLedMessage.ProtocolVersion) {
 			var pvev = new Ds4UdpLedProtocolVersionEvent();
-			pvev.protocolVersion = b.readU32();
+			// only read if we actually have the data in the packet
+			if (packetSize >= 16 + buffer_sizeof(buffer_u32)) {
+				pvev.protocolVersion = b.readU32();
+			}
 			// sneaky sneaky us... :3
 			srvProtocol = pvev.protocolVersion;
 			ev.protocolVersion = pvev;
@@ -427,7 +430,8 @@ function Ds4UdpLedClient(ipString, portReal) constructor {
 		beginPacket(Ds4UdpLedMessage.ControllerData, deviceIndexReal);
 		var b = scratchBuff;
 		if (srvProtocol > 0) {
-			b.writeU32(protocolVersionReal);
+			// write the protocol we got from the server, not ours
+			b.writeU32(srvProtocol);
 		}
 		endPacket();
 		return self;
