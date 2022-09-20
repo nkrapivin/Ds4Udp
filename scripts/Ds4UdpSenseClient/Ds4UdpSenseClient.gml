@@ -143,7 +143,7 @@ function Ds4UdpSenseClient(ipString = undefined, portReal = undefined) construct
 	/// @desc !DO NOT CALL THIS METHOD FROM PUBLIC CODE!
 	/// @ignore
 	chkDisposed = function() {
-		if (is_undefined(clSck) || scratchBuff < 0) {
+		if (is_undefined(clSck) || is_undefined(scratchBuff)) {
 			throw new Ds4UdpException("Ds4UdpSenseClient is disposed");
 		}
 	};

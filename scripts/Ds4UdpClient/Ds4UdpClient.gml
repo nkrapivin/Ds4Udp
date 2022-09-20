@@ -111,7 +111,7 @@ function Ds4UdpClient(ipString = undefined, portReal = undefined) constructor {
 	/// @desc !DO NOT CALL THIS METHOD FROM PUBLIC CODE!
 	/// @ignore
 	chkDisposed = function() {
-		if (is_undefined(clSck) || scratchBuff < 0) {
+		if (is_undefined(clSck) || is_undefined(scratchBuff)) {
 			throw new Ds4UdpException("Ds4UdpClient is disposed");
 		}
 	};
