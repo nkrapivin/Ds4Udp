@@ -4,7 +4,6 @@
 
 /// @desc Event type
 enum Ds4UdpLedMessage {
-	/// @desc Not a part of the original OpenRGB spec, used to signal a socket state change.
 	ClientStateChange = -1024,
 	ControllerCount = 0,
 	ControllerData = 1,
@@ -24,7 +23,75 @@ enum Ds4UdpLedMessage {
 	RgbControllerSaveMode = 1102
 };
 
-/// @arg {Array<String>} hintA profileList
+/*------------------------------------------------------------------*\
+| Mode Flags                                                         |
+\*------------------------------------------------------------------*/
+enum Ds4UdpLedModeFlag {
+    HasSpeed                 = (1 << 0), /* Mode has speed parameter         */
+    HasDirectionLR           = (1 << 1), /* Mode has left/right parameter    */
+    HasDirectionUD           = (1 << 2), /* Mode has up/down parameter       */
+    HasDirectionHV           = (1 << 3), /* Mode has horiz/vert parameter    */
+    HasBrightness            = (1 << 4), /* Mode has brightness parameter    */
+    HasPerLedColor           = (1 << 5), /* Mode has per-LED colors          */
+    HasModeSpecificColor     = (1 << 6), /* Mode has mode specific colors    */
+    HasRandomColor           = (1 << 7), /* Mode has random color option     */
+    ManualSave               = (1 << 8), /* Mode can manually be saved       */
+    AutomaticSave            = (1 << 9), /* Mode automatically saves         */
+};
+
+/*------------------------------------------------------------------*\
+| Mode Directions                                                    |
+\*------------------------------------------------------------------*/
+enum Ds4UdpLedModeDirection {
+    Left         = 0,        /* Mode direction left              */
+    Right        = 1,        /* Mode direction right             */
+    Up           = 2,        /* Mode direction up                */
+    Down         = 3,        /* Mode direction down              */
+    Horizontal   = 4,        /* Mode direction horizontal        */
+    Vertical     = 5,        /* Mode direction vertical          */
+};
+
+/*------------------------------------------------------------------*\
+| Mode Color Types                                                   |
+\*------------------------------------------------------------------*/
+enum Ds4UdpLedModeColors {
+    None            = 0,        /* Mode has no colors               */
+    PerLed          = 1,        /* Mode has per LED colors selected */
+    ModeSpecific    = 2,        /* Mode specific colors selected    */
+    Random          = 3,        /* Mode has random colors selected  */
+};
+
+enum Ds4UdpLedZoneType {
+    Single,
+    Linear,
+    Matrix
+};
+
+enum Ds4UdpLedDeviceType {
+    Motherboard,
+    Dram,
+    Gpu,
+    Cooler,
+    LedStrip,
+    Keyboard,
+    Mouse,
+    MouseMat,
+    Headset,
+    HeadsetStand,
+    Gamepad, // my beloved
+    Light,
+    Speaker,
+    Virtual,
+    Storage,
+    Case,
+    Microphone,
+    Accessory,
+    Unknown,
+};
+
+
+
+/// @arg {Array<String>} [hintA] profileList
 function Ds4UdpProfileListEvent(hintA = []) constructor {
 	profileList = hintA;
 }
@@ -34,40 +101,45 @@ function Ds4UdpLedBlock() constructor {
 	ledValue = 0;
 }
 
-/// @arg {Array<Array<Real>>} hintA zoneMatrixData
-function Ds4UdpLedZone(hintA = []) constructor {
+/// @arg {Array<Array<Real>>} [hintA] zoneMatrixData
+/// @arg {Enum.Ds4UdpLedZoneType} [hintB] zoneType
+function Ds4UdpLedZone(hintA = [], hintB = Ds4UdpLedZoneType.Single) constructor {
 	zoneName = "";
-	zoneType = 0;
+	zoneType = hintB;
 	zoneLedsMin = 0;
 	zoneLedsMax = 0;
 	zoneLedsCount = 0;
 	zoneMatrixData = hintA;
 }
 
-/// @arg {Array<Constant.Color>} hintA colors
-function Ds4UdpLedMode(hintA = []) constructor {
+/// @arg {Array<Constant.Color>} [hintA] colors
+/// @arg {Enum.Ds4UdpLedModeFlag} [hintB] modeFlags
+/// @arg {Enum.Ds4UdpLedModeDirection} [hintC] modeDirection
+/// @arg {Enum.Ds4UdpLedModeColors} [hintD] modeColorMode
+function Ds4UdpLedMode(hintA = [], hintB = Ds4UdpLedModeFlag.HasBrightness, hintC = Ds4UdpLedModeDirection.Down, hintD = Ds4UdpLedModeColors.None) constructor {
 	modeName = "";
 	modeValue = 0;
-	modeFlags = 0;
+	modeFlags = hintB;
 	modeSpeedMin = 0;
 	modeSpeedMax = 0;
-	modeBrightnessMin = undefined;
-	modeBrightnessMax = undefined;
+	modeBrightnessMin = undefined; // protocol 3+ only
+	modeBrightnessMax = undefined; // protocol 3+ only
 	modeColorsMin = 0;
 	modeColorsMax = 0;
 	modeSpeed = 0;
-	modeBrightness = undefined;
-	modeDirection = 0;
-	modeColorMode = 0;
+	modeBrightness = undefined; // protocol 3+ only
+	modeDirection = hintC;
+	modeColorMode = hintD;
 	modeColors = hintA;
 }
 
-/// @arg {Array<Struct.Ds4UdpLedMode>} hintA modes
-/// @arg {Array<Struct.Ds4UdpLedZone>} hintB zones
-/// @arg {Array<Struct.Ds4UdpLedBlock>} hintC leds
-/// @arg {Array<Constant.Color>} hintD colors
-function Ds4UdpLedControllerDataEvent(hintA = [], hintB = [], hintC = [], hintD = []) constructor {
-	type = 0;
+/// @arg {Array<Struct.Ds4UdpLedMode>} [hintA] modes
+/// @arg {Array<Struct.Ds4UdpLedZone>} [hintB] zones
+/// @arg {Array<Struct.Ds4UdpLedBlock>} [hintC] leds
+/// @arg {Array<Constant.Color>} [hintD] colors
+/// @arg {Enum.Ds4UdpLedDeviceType} [hintE] type
+function Ds4UdpLedControllerDataEvent(hintA = [], hintB = [], hintC = [], hintD = [], hintE = Ds4UdpLedDeviceType.Unknown) constructor {
+	type = hintE;
 	name = "";
 	vendor = undefined; // protocol >0 only!
 	description = "";
@@ -99,12 +171,12 @@ function Ds4UdpLedClientStateChangeEvent() constructor {
 
 /// @arg {Enum.Ds4UdpLedMessage} messageTypeIn incoming message type
 /// @arg {Struct.Ds4UdpLedClient} senderIn sender of the event
-/// @arg {Struct.Ds4UdpLedClientStateChangeEvent} hintA clientStateChange
-/// @arg {Struct.Ds4UdpLedProtocolVersionEvent} hintB protocolVersion
-/// @arg {Struct.Ds4UdpLedDeviceListUpdatedEvent} hintC deviceListUpdated
-/// @arg {Struct.Ds4UdpLedControllerCountEvent} hintD controllerCount
-/// @arg {Struct.Ds4UdpLedControllerDataEvent} hintE controllerData
-/// @arg {Struct.Ds4UdpProfileListEvent} hintF profileList
+/// @arg {Struct.Ds4UdpLedClientStateChangeEvent} [hintA] clientStateChange
+/// @arg {Struct.Ds4UdpLedProtocolVersionEvent} [hintB] protocolVersion
+/// @arg {Struct.Ds4UdpLedDeviceListUpdatedEvent} [hintC] deviceListUpdated
+/// @arg {Struct.Ds4UdpLedControllerCountEvent} [hintD] controllerCount
+/// @arg {Struct.Ds4UdpLedControllerDataEvent} [hintE] controllerData
+/// @arg {Struct.Ds4UdpProfileListEvent} [hintF] profileList
 /// @desc Ds4UdpLed Event class, messageType determines which fields are available
 function Ds4UdpLedEvent(messageTypeIn, senderIn, hintA = undefined, hintB = undefined, hintC = undefined, hintD = undefined, hintE = undefined, hintF = undefined) constructor {
 	messageType = messageTypeIn;

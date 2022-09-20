@@ -1,3 +1,7 @@
+// Feather disable GM2017
+// that thing is so awful at naming suggestions that I gave up
+// everything else? Sure, please!
+
 #macro DUALSENSE_X_PRINT_THE_TRUTH false
 
 enum Ds4UdpSenseTriggerMode {
@@ -232,3 +236,6 @@ function Ds4UdpSenseClient(ipString = undefined, portReal = undefined) construct
 	// set the data handler for our socket
 	clSck.setOnData(onSocketData);
 }
+
+// Feather restore GM2017
+
