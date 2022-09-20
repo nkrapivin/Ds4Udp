@@ -184,7 +184,6 @@ function Ds4UdpLedClient(ipString, portReal) constructor {
 		try {
 			clSck.sendToTcp(b, wholeLength);
 		} catch (socketException) {
-			reset();
 			if (!is_undefined(handlerFunction)) {
 				var e = new Ds4UdpLedEvent(Ds4UdpLedMessage.ClientStateChange, self);
 				var evd = new Ds4UdpLedClientStateChangeEvent();
@@ -398,6 +397,7 @@ function Ds4UdpLedClient(ipString, portReal) constructor {
 	onSocketState = function(stateResult) {
 		chkDisposed();
 		isConnected = stateResult == network_type_connect;
+		srvProtocol = 0;
 		if (!is_undefined(handlerFunction)) {
 			var e = new Ds4UdpLedEvent(Ds4UdpLedMessage.ClientStateChange, self);
 			var evd = new Ds4UdpLedClientStateChangeEvent();
@@ -607,9 +607,20 @@ function Ds4UdpLedClient(ipString, portReal) constructor {
 	/// @desc Attempts to reconnect the socket if not connected.
 	reconnect = function() {
 		chkDisposed();
-		if (!isConnected) {
-			clSck.connectToTcp(srvIp, srvPort);
+		if (isConnected) {
+			reset();
 		}
+		
+		clSck.connectToTcp(srvIp, srvPort);
+		return self;
+	};
+	
+	/// @desc Attempts to set timeout for the owned socket
+	/// @arg {Real} readTimeoutReal Read/Receive timeout in miliseconds
+	/// @arg {Real} writeTimeoutReal Write/Send timeout in miliseconds
+	setTimeouts = function(readTimeoutReal, writeTimeoutReal) {
+		chkDisposed();
+		clSck.setTimeouts(readTimeoutReal, writeTimeoutReal);
 		return self;
 	};
 	
@@ -640,7 +651,6 @@ function Ds4UdpLedClient(ipString, portReal) constructor {
 	// set the data handler for our socket
 	clSck.setOnState(onSocketState);
 	clSck.setOnData(onSocketData);
-	clSck.connectToTcp(srvIp, srvPort);
 }
 
 // Feather restore GM2017

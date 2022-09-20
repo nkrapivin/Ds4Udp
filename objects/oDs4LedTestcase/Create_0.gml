@@ -7,13 +7,11 @@ profileNames = [];
 updateDeviceList = function() {
 	if (tempind == -1) {
 		client.requestControllerCount();
-		show_debug_message("OpenRGB updating device list...");
 	}
 };
 
 updateProfileList = function() {
 	client.requestProfileList();
-	show_debug_message("OpenRGB updating profile list...");
 };
 
 /// @arg {Struct.Ds4UdpLedEvent} e event data
@@ -36,17 +34,24 @@ handler = function(e) {
 		}
 		
 		show_debug_message("OpenRGB Connected!");
-		client.requestProtocolVersion();
+		client.requestProtocolVersion(); // this will silently fail if we're on an old server
+		// if this will succeed, then due to ORGB networking bugs, we need to send the packet again
+		client.setClientName("http://www.hampsterdance.com/");
+		// if we were able to get the protocol version
+		// then this call will not succeed (GM networking bugs?)
+		// and we have to do it again in OnProtocolVersion
+		updateDeviceList();
 	}
 	else if (em == Ds4UdpLedMessage.ProtocolVersion) {
 		var protver = e.protocolVersion.protocolVersion;
 		show_debug_message("OpenRGB protocol = " + string(protver));
-		client.setClientName("http://www.hampsterdance.com/");
+		// see comment above:
 		updateDeviceList();
 	}
 	else if (em == Ds4UdpLedMessage.ControllerCount) {
 		var numDevs = e.controllerCount.controllerCount;
 		devices = array_create(numDevs, undefined);
+		show_debug_message("OpenRGB updating device list... numDevs=" + string(numDevs));
 		if (numDevs > 0) {
 			// start from first device and move onwards
 			tempind = 0;
@@ -80,9 +85,14 @@ handler = function(e) {
 	}
 };
 
-
+// make a client (disconnected state):
 client = new Ds4UdpLedClient();
+// apply network config here:
+network_set_config(network_config_connect_timeout, 2000);
+client.setTimeouts(200, 1000);
 client.setOnData(handler);
+// ask to connect:
+client.reconnect();
 //-- Since we're on a TCP connection, we need to wait for a connection first...
 
 funnycol = c_white;

@@ -99,6 +99,15 @@ function Ds4UdpSocket(inSocketType) constructor {
 		return self;
 	};
 	
+	/// @desc Attempts to set timeout for the underlying socket
+	/// @arg {Real} readTimeoutReal Read/Receive timeout in miliseconds
+	/// @arg {Real} writeTimeoutReal Write/Send timeout in miliseconds
+	setTimeouts = function(readTimeoutReal, writeTimeoutReal) {
+		chkDisposed();
+		network_set_timeout(sockId, readTimeoutReal, writeTimeoutReal);
+		return self;
+	};
+	
 	/// @arg {Id.DsMap} [asyncLoadId] An id of async_load or nothing
 	/// @desc Call in the 'Async - Networking' event like so: sck.performNetworkingEvent();
 	performNetworkingEvent = function(asyncLoadId = undefined) {
