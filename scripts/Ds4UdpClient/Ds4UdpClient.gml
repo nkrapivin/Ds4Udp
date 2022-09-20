@@ -91,30 +91,21 @@ function Ds4UdpEvent(msgTypeIn, serverIdIn, senderIn,
 /// @desc This class communicates with the DS4Windows built-in UDP server, it must be enabled.
 ///       Will use the default address of 127.0.0.1:26760 if none is provided.
 function Ds4UdpClient(ipString = undefined, portReal = undefined) constructor {
-	/// @ignore
 	srvIp = (is_undefined(ipString)) ? "127.0.0.1" : ipString;
-	/// @ignore
 	srvPort = (is_undefined(portReal) || portReal <= 0) ? 26760 : portReal;
-	/// @ignore
 	clSck = new Ds4UdpSocket(network_socket_udp);
-	/// @ignore
 	handlerFunction = undefined;
 	
 	// send out buffer area:
-	/// @ignore
 	scratchDataPos = 0;
-	/// @ignore
 	scratchPacketSizePos = 0;
-	/// @ignore
 	scratchBuff = new Ds4UdpBuffer(64, buffer_fixed, 1);
 	
 	// constants:
-	/// @desc Supported protocol version
 	protocolVersionReal = 1001;
 	// the time when we reach this line cannot be predicated normally
 	// since we allocate some stuff, set some variables, this takes microseconds.
 	// so it's fiiine
-	/// @desc Pseudo-random client id, does not use GM's own random.
 	clientIdReal = (pi * get_timer()) & 0xFFFFFFFF; // must be random and u32, only if I cared
 	
 	/// @desc !DO NOT CALL THIS METHOD FROM PUBLIC CODE!

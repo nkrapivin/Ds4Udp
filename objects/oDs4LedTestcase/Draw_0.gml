@@ -18,6 +18,8 @@ for (var d = 0; d < numDevs; ++d) {
 
 
 	// TODO: your code here...
-	
+	draw_text(64, room_height/2 + deviceIndex * 64,
+		string(deviceData)
+	);
 }
 

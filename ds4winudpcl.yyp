@@ -7,6 +7,8 @@
     {"id":{"name":"oDs4Testcase","path":"objects/oDs4Testcase/oDs4Testcase.yy",},"order":1,},
     {"id":{"name":"Ds4UdpLedClient","path":"scripts/Ds4UdpLedClient/Ds4UdpLedClient.yy",},"order":4,},
     {"id":{"name":"Ds4UdpSocket","path":"scripts/Ds4UdpSocket/Ds4UdpSocket.yy",},"order":0,},
+    {"id":{"name":"Ds4UdpSenseClient","path":"scripts/Ds4UdpSenseClient/Ds4UdpSenseClient.yy",},"order":5,},
+    {"id":{"name":"oDs4SenseTestcase","path":"objects/oDs4SenseTestcase/oDs4SenseTestcase.yy",},"order":3,},
     {"id":{"name":"Ds4UdpException","path":"scripts/Ds4UdpException/Ds4UdpException.yy",},"order":1,},
     {"id":{"name":"Ds4UdpBuffer","path":"scripts/Ds4UdpBuffer/Ds4UdpBuffer.yy",},"order":3,},
     {"id":{"name":"oDs4LedTestcase","path":"objects/oDs4LedTestcase/oDs4LedTestcase.yy",},"order":2,},

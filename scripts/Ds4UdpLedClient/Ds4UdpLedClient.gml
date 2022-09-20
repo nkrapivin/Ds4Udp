@@ -121,26 +121,16 @@ function Ds4UdpLedEvent(messageTypeIn, senderIn, hintA = undefined, hintB = unde
 /// @desc OpenRGB client implementation
 /// @arg {String} [ipString] IP address of the server as a string, defaults to 127.0.0.1
 /// @arg {Real} [portReal] Port of the server, optional
-function Ds4UdpLedClient(ipString, portReal) constructor {
-	/// @ignore
+function Ds4UdpLedClient(ipString = undefined, portReal = undefined) constructor {
 	srvIp = (is_undefined(ipString)) ? "127.0.0.1" : ipString;
-	/// @ignore
 	srvPort = (is_undefined(portReal) || portReal <= 0) ? 6742 : portReal;
-	/// @ignore
 	clSck = new Ds4UdpSocket(network_socket_tcp);
-	/// @ignore
 	handlerFunction = undefined;
-	/// @ignore
 	isConnected = false;
-	/// @ignore
 	scratchBuff = new Ds4UdpBuffer(64, buffer_grow, 1);
-	/// @ignore
 	scratchSizePos = 0;
-	/// @ignore
 	scratchBeginPos = 0;
-	/// @ignore
 	protocolVersionReal = 3;
-	/// @ignore
 	srvProtocol = 0;
 	
 	/// @desc !DO NOT CALL THIS METHOD FROM PUBLIC CODE!

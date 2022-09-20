@@ -3,9 +3,7 @@
 /// @arg {Constant.BufferType} [bufferType] Buffer type constant
 /// @arg {Real} [bufferAlignment] Buffer alignment, defaults to 1
 function Ds4UdpBuffer(sizeOrBufferId) constructor {
-	/// @ignore
 	isBufferManaged = argument_count > 1; // are we responsible for freeing the buffer?
-	/// @ignore
 	bufferId = isBufferManaged
 		? buffer_create(
 				sizeOrBufferId,
@@ -102,6 +100,12 @@ function Ds4UdpBuffer(sizeOrBufferId) constructor {
 		seek(at);
 		writeU32(value);
 		seek(ppos);
+	};
+	
+	/// @desc NOT NULL TERMINATED! Use when you have to!
+	writeString = function(value) {
+		chkDisposed();
+		buffer_write(bufferId, buffer_text, value);
 	};
 	
 	writeCString = function(value) {
